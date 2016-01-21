@@ -25,22 +25,22 @@ y_train = data.get_y_train()
 Y_train = np_utils.to_categorical(y_train, 10)
 
 model = Graph()
-
-model.add_input(name='img_input', input_shape=(len(X_img_train[0]),))
+maxlen = len(X_img_train[0])
+model.add_input(name='img_input', input_shape=(maxlen,))
 model.add_node(Dense(1000, activation='relu'), name='img_dense1', input='img_input')
 model.add_node(Dropout(0.5), name='img_dropout1', input='img_dense1')
 model.add_node(Dense(600, activation='relu'), name='img_dense2', input='img_dropout1')
 model.add_node(Dropout(0.5), name='img_dropout2', input='img_dense2')
 model.add_node(Dense(10), name='img_dense3', input='img_dropout2')
 
-
-model.add_input(name='aud_input', input_shape=(len(X_aud_train[0],), dtype=float)
-model.add_node(Embedding(len(X_aud_train), 128, input_length=len(X_aud_train[0]), name='embedding', input='aud_input')
+max_feature = len(X_aud_train)
+maxlen = len(X_aud_train[0])
+model.add_input(name='aud_input', input_shape=(maxlen,), dtype=float)
+model.add_node(Embedding(max_feature, 128, input_length=maxlen), name='embedding', input='aud_input')
 model.add_node(LSTM(64), name='forward', input='embedding')
 model.add_node(LSTM(64, go_backwards=True), name='backward', input='embedding')
 model.add_node(Dropout(0.5), name='aud_dropout', inputs=['forward', 'backward'])
 model.add_node(Dense(10), name='aud_dense', input='aud_dropout')
-
 
 model.add_node(Dropout(0.5), name='dropout', inputs=['img_dense3', 'aud_dense'], merge_mode='sum')
 model.add_node(Dense(10, activation='softmax'), name = 'soft_max', input='dropout')
