@@ -15,109 +15,20 @@ from keras.layers.recurrent import LSTM
 #from keras.datasets import imdb
 #from keras.optimizers import RMSprop
 
-import os.path
-import glob
+import mdl_data
 import numpy as np
-import csv
-from six.moves import cPickle 
-
 #-------------------------------------------
-#np.random.seed(1337)  # for reproducibility
-np.random.seed(1237)  # for reproducibility
 
-event = {'Ev101': 1, 'Ev102': 2, 'Ev103': 3, 'Ev104': 4, 'Ev105': 5, 'Ev106': 6, 'Ev107': 7, 'Ev108': 8, 'Ev109': 9, 'Ev110': 0}
-settt = {'Training': 0, 'Test': 1}
+np.random.seed(1337)  # for reproducibility
 
-infofile = open('YLIMED_info.csv', 'rb')
-inforeader = csv.reader(infofile, )
-next(inforeader)
+data = mdl_data.YLIMED('YLIMED_info.csv', '../YLIMED150924/audio/mfcc20', '../YLIMED150924/keyframe/fc7')
 
-labelset = np.zeros(10)
-ttset = np.zeros(2)
+X_train = data.get_aud_X_train()
+X_test = data.get_aud_X_test()
+y_train = data.get_y_train()
+y_test = data.get_y_test()
 
-trainingset = np.zeros(10)
-testset = np.zeros(10)
 
-VID = []
-LABEL = []
-SET = []
-for info in inforeader:
-    VID.append(info[0])
-    LABEL.append(info[7])
-    SET.append(info[13])
-    
-    labelset[event[info[7]]] += 1
-    ttset[settt[info[13]]] += 1
-    
-    if info[13] == 'Training':
-        trainingset[event[info[7]]] += 1
-    else:
-        testset[event[info[7]]] += 1
-        
-    
-infofile.close()
-
-print ('Data count =', int(sum(labelset)))
-print ('Label set =', labelset)
-print ('Training / Test ratio =', ttset)
-print ('Training set  =', trainingset)
-print ('Test set =', testset)
-
-print('##########Loading data...')
-X_test = []
-y_test = []
-X_train = []
-y_train = []
-count = 0
-
-audioset = glob.glob('YLIMED150924/audio/mfcc20/*.mfcc20.ascii')
-for temp in audioset:
-    audiopath = temp
-    audioid = temp.split('/')
-    audioid = audioid[len(audioid)-1]
-    audioid = audioid.split('.')[0]
-    
-    try:
-        aud_label = event[LABEL[VID.index(audioid)]]
-        aud_set = SET[VID.index(audioid)]
-    except ValueError:
-        continue
-            
-    count += 1
-#    if count % 10 == 0:
-#        print (count)
-    audiofile = open(audiopath, 'r')
-    audiodata = audiofile.readlines()
-    feat_aud = []
-
-    range_len=len(audiodata)/100
-
-    if aud_set == 'Test':
-        for i in range(range_len):
-            aud_feat = []
-            for j in range(100):
-                aud_feat += [float(x) for x in audiodata[i*100+j].split()]
-            #print len(feat_aud)
-            X_test.append(aud_feat)
-            y_test.append(aud_label)
-    else:
-        for i in range(range_len):
-            aud_feat = []
-            for j in range(100):
-                aud_feat += [float(x) for x in audiodata[i*100+j].split()]
-            #print len(feat_aud)
-            X_train.append(aud_feat)
-            y_train.append(aud_label)
-            
-    audiofile.close()
-
-X_train = np.asarray(X_train)
-X_test = np.asarray(X_test)
-y_train = np.asarray(y_train, )
-y_test = np.asarray(y_test)
-
-#max_features = 20000
-#maxlen = 100  # cut texts after this number of words (among top max_features most common words)
 max_features = len(X_train)#43599
 maxlen = len(X_train[0])#2000
 batch_size = 32
@@ -138,12 +49,6 @@ Y_train = np_utils.to_categorical(y_train, 10)
 Y_test = np_utils.to_categorical(y_test, 10)
 
 #-----------------------------------------------------------------------
-#https://github.com/fchollet/keras/blob/master/examples/imdb_bidirectional_lstm.py
-#https://github.com/fchollet/keras/issues/1063
-#http://keras.io/models/
-print("###########Create Model...")
-max_features = 43599
-maxlen = 2000
 
 model = Graph()
 model.add_input(name='input', input_shape=(maxlen,), dtype=float)
@@ -178,3 +83,8 @@ for i in range(0, len(X_test)):
         ac += 1
 print(ac)
 print(float(ac) / float(len(X_test)))
+
+
+#https://github.com/fchollet/keras/blob/master/examples/imdb_bidirectional_lstm.py
+#https://github.com/fchollet/keras/issues/1063
+#http://keras.io/models/
