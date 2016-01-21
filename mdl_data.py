@@ -53,19 +53,14 @@ class YLIMED():
 
         f.close()
 
-    def get_data(self):
-        #for progress bar
-        sys.stdout.write('\nLoading data...\n')
+    def __initial_data_info(self):
+        print 'Initial data info...'
+        f = open('YLIMED_info.tmp', 'w')
+
         starttime = time.time()
         total = len(self.VID)
         count = 0
 
-        #for data
-        aud_X_train, img_X_train = [], []
-        aud_X_test, img_X_test = [], []
-        y_train, y_test = [], []
-
-        #start get_data
         for tVID in self.VID:
             #check both file exist
             temp_aud_file = self.pathAud + '/' + tVID + '.mfcc20.ascii'
@@ -91,58 +86,105 @@ class YLIMED():
             else:
                 range_len=len(imgData)
 
-            #check label & set of now tVID
-            label = EVENT[self.LABEL[self.VID.index(tVID)]]
+            f.write(tVID + ' ' + str(range_len) + '\n')
+            imgFile.close()
+
+        f.close()
+
+    def __get_part_data(self, Aud_Img_Lab, tr_or_te):
+        tmpinfo = open('YLIMED_info.tmp', 'r')
+        tmpdata = tmpinfo.readlines()
+        starttime = time.time()
+        total = len(tmpdata)
+        count = 0
+        output = []
+        for line in tmpdata:
+            count += 1
+            progress = int(float(count) / float(total) * float(100))
+            sys.stdout.write('\r')
+            sys.stdout.write("[%-20s] %d%% %d sec" % ('='*(progress/5), progress, time.time() - starttime))
+            sys.stdout.flush()
+
+            line = line.split()
+            tVID = line[0]
+            range_len = line[1]
             set = self.SET[self.VID.index(tVID)]
 
-            for i in range(range_len):
-                img_feat = [float(x) for x in imgData[i].split()]
-                aud_feat = []
-                for j in range(100):
-                    aud_feat += [float(x) for x in audData[i*100+j].split()]
-                if set == 'Test':
-                    img_X_test.append(img_feat)
-                    aud_X_test.append(aud_feat)
-                    y_test.append(label)
-                else:
-                    img_X_train.append(img_feat)
-                    aud_X_train.append(aud_feat)
-                    y_train.append(label)
-            audFile.close()
-            imgFile.close()
-        print '\nData load done!'
+            if set != tr_or_te:
+                continue
 
-        print 'Pickling...'
+            if Aud_Img_Lab == 'Lab':
+                for i in range(int(range_len)):
+                    label = EVENT[self.LABEL[self.VID.index(tVID)]]
+                    output.append(label)
+            else:
+                if Aud_Img_Lab == 'Aud':
+                    temp_file = self.pathAud + '/' + tVID + '.mfcc20.ascii'
+                    f = open(temp_file, 'r')
+                    data = f.readlines()
+                    f.close()
+                elif Aud_Img_Lab == 'Img':
+                    temp_file = self.pathImg + '/' + tVID + '.fc7.txt'
+                    f = open(temp_file, 'r')
+                    data = f.readlines()
+                    f.close()
 
-        y_train = np.asarray(y_train)
-        y_test = np.asarray(y_test)
-        print 'y_train num:     %d' % len(y_train), y_train.shape
-        print 'y_test num:      %d' % len(y_test), y_test.shape
-        f = open('YLDMED_y.pkl', 'wb')
-        temp = y_train, y_test
-        cPickle.dump(temp, f)
-        f.close()
+                for i in range(int(range_len)):
+                    add = []
+                    if Aud_Img_Lab == 'Aud':
+                        for j in range(100):
+                            add += [float(x) for x in data[i*100+j].split()]
+                    elif Aud_Img_Lab == 'Img':
+                        add = [float(x) for x in data[i].split()]
 
-        aud_X_train = np.asarray(aud_X_train)
-        aud_X_test = np.asarray(aud_X_test)
-        print 'aud_X_train num: %d' % len(aud_X_train), aud_X_train.shape
-        print 'aud_X_test num:  %d' % len(aud_X_test), aud_X_test.shape
-        f = open('YLDMED_aud_X.pkl', 'wb')
-        temp = aud_X_train, aud_X_test
-        cPickle.dump(temp, f)
-        f.close()
+                    output.append(add)
+        tmpinfo.close()
+        output = np.asarray(output)
+        print ', finish'
+        return output
 
-        img_X_train = np.asarray(img_X_train)
-        img_X_test = np.asarray(img_X_test)
-        print 'img_X_train num: %d' % len(img_X_train), img_X_train.shape
-        print 'img_X_test num:  %d' % len(img_X_test), img_X_test.shape
-        f = open('YLDMED_img_X.pkl', 'wb')
-        temp = img_X_train, img_X_test
-        cPickle.dump(temp, f)
-        f.close()
+    def get_data(self):
+        print 'Loading data...'
+
+        if not os.path.isfile('YLIMED_info.tmp'):
+            self.__initial_data_info()
+
+        #test = self.__get_part_data('Lab', 'Test')
+        #training = self.__get_part_data('Lab', 'Training')
+
+        aud_test = self.__get_part_data('Img', 'Training')
+        print aud_test.shape
+
+        # print 'Pickling...'
+        #
+        # y_train = np.asarray(y_train)
+        # y_test = np.asarray(y_test)
+        # print 'y_train num:     %d' % len(y_train), y_train.shape
+        # print 'y_test num:      %d' % len(y_test), y_test.shape
+        # f = open('YLDMED_y.pkl', 'wb')
+        # temp = y_train, y_test
+        # cPickle.dump(temp, f)
+        # f.close()
+        #
+        # aud_X_train = np.asarray(aud_X_train)
+        # aud_X_test = np.asarray(aud_X_test)
+        # print 'aud_X_train num: %d' % len(aud_X_train), aud_X_train.shape
+        # print 'aud_X_test num:  %d' % len(aud_X_test), aud_X_test.shape
+        # f = open('YLDMED_aud_X.pkl', 'wb')
+        # temp = aud_X_train, aud_X_test
+        # cPickle.dump(temp, f)
+        # f.close()
+        #
+        # img_X_train = np.asarray(img_X_train)
+        # img_X_test = np.asarray(img_X_test)
+        # print 'img_X_train num: %d' % len(img_X_train), img_X_train.shape
+        # print 'img_X_test num:  %d' % len(img_X_test), img_X_test.shape
+        # f = open('YLDMED_img_X.pkl', 'wb')
+        # temp = img_X_train, img_X_test
+        # cPickle.dump(temp, f)
+        # f.close()
 
 if __name__ == '__main__':
     data = YLIMED('YLIMED_info.csv', '../YLIMED150924/audio/mfcc20', '../YLIMED150924/keyframe/fc7')
     data.get_data()
-
 

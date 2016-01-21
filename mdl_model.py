@@ -1,6 +1,7 @@
-from __future__ import absolute_import
-from __future__ import print_function
+__author__ = 'jhlee'
 
+#from __future__ import absolute_import
+#from __future__ import print_function
 
 from keras.models import Graph, Sequential
 from keras.preprocessing import sequence
