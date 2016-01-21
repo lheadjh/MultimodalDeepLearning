@@ -143,18 +143,20 @@ class YLIMED():
         print ', finish'
         return output
 
-    def get_data(self):
-        print 'Loading data...'
+    def get_aud_X_training(self):
+        return self.__get_part_data('aud', 'Training')
+    def get_aud_X_test(self):
+        return self.__get_part_data('aud', 'Test')
+    def get_img_X_training(self):
+        return self.__get_part_data('Img', 'Training')
+    def get_img_X_test(self):
+        return self.__get_part_data('Img', 'Test')
+    def get_y_training(self):
+        return self.__get_part_data('Lab', 'Training')
+    def get_y_test(self):
+        return self.__get_part_data('Lab', 'Test')
 
-        if not os.path.isfile('YLIMED_info.tmp'):
-            self.__initial_data_info()
-
-        #test = self.__get_part_data('Lab', 'Test')
-        #training = self.__get_part_data('Lab', 'Training')
-
-        aud_test = self.__get_part_data('Img', 'Training')
-        print aud_test.shape
-
+#TODO
         # print 'Pickling...'
         #
         # y_train = np.asarray(y_train)
@@ -186,5 +188,5 @@ class YLIMED():
 
 if __name__ == '__main__':
     data = YLIMED('YLIMED_info.csv', '../YLIMED150924/audio/mfcc20', '../YLIMED150924/keyframe/fc7')
-    data.get_data()
+    print data.get_y_test().shape
 
