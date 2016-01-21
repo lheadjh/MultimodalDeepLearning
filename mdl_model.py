@@ -2,16 +2,17 @@ from __future__ import absolute_import
 from __future__ import print_function
 
 
-from keras.models import Graph
+from keras.models import Graph, Sequential
 from keras.preprocessing import sequence
+
 from keras.utils import np_utils
-from keras.models import Sequential
+from keras.utils.np_utils import accuracy
+
 from keras.layers.core import TimeDistributedDense, Dense, Dropout, Activation
 from keras.layers.embeddings import Embedding
 from keras.layers.recurrent import LSTM
-from keras.datasets import imdb
-from keras.optimizers import RMSprop
-from keras.utils.np_utils import accuracy
+#from keras.datasets import imdb
+#from keras.optimizers import RMSprop
 
 import os.path
 import glob
