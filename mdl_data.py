@@ -195,4 +195,3 @@ class YLIMED():
 if __name__ == '__main__':
     data = YLIMED('YLIMED_info.csv', '../YLIMED150924/audio/mfcc20', '../YLIMED150924/keyframe/fc7')
     print data.get_aud_X_test().shape
-
