@@ -57,8 +57,8 @@ Y_test = np_utils.to_categorical(y_test, 10)
 
 pred = np.array(model.predict({'img_input':X_img_test, 'aud_input':X_aud_test})['output'])
 ac = 0
-for i in range(0, len(X_test)):
+for i in range(0, len(X_img_test)):
     if np.argmax(Y_test[i]) == np.argmax(pred[i]):
         ac += 1
-print 'Test accuracy:	', float(ac) / float(len(X_test))
+print 'Test accuracy:	', float(ac) / float(len(X_img_test))
 
