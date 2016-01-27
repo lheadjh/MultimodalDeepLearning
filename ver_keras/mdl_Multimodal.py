@@ -17,7 +17,7 @@ import numpy as np
 
 np.random.seed(1337)  # for reproducibility
 
-data = mdl_data.YLIMED('YLIMED_info.csv', '../YLIMED150924/audio/mfcc20', '../YLIMED150924/keyframe/fc7')
+data = mdl_data.YLIMED('YLIMED_info.csv', '/DATA/YLIMED150924/audio/mfcc20', '/DATA/YLIMED150924/keyframe/fc7')
 
 X_img_train = data.get_img_X_train()
 X_aud_train = data.get_aud_X_train()
