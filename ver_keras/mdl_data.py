@@ -19,6 +19,8 @@ class YLIMED():
         self.LABEL = []
         self.SET = []
         self.__summary_data()
+        if not (os.path.isfile('YLIMED_info.tmp')):
+            self.__initial_data_info()
 
     def __summary_data(self):
         f = open(self.pathInfo, 'rb')
@@ -113,6 +115,12 @@ class YLIMED():
             if set != tr_or_te:
                 continue
 
+            if tr_or_te == 'Test' and Aud_Img_Lab == 'VID':
+		for i in range(int(range_len)):
+                    output.append(tVID)
+                continue
+
+
             if Aud_Img_Lab == 'Lab':
                 for i in range(int(range_len)):
                     label = EVENT[self.LABEL[self.VID.index(tVID)]]
@@ -161,6 +169,8 @@ class YLIMED():
     def get_y_test(self):
         print 'Load Test Label Data'
         return self.__get_part_data('Lab', 'Test')
+    def get_testVID(self):
+        return self.__get_part_data('VID', 'Test')
 
 #TODO
         # print 'Pickling...'
@@ -193,5 +203,5 @@ class YLIMED():
         # f.close()
 
 if __name__ == '__main__':
-    data = YLIMED('YLIMED_info.csv', '../YLIMED150924/audio/mfcc20', '../YLIMED150924/keyframe/fc7')
-    print data.get_aud_X_test().shape
+    data = YLIMED('YLIMED_info.csv', '/DATA/YLIMED150924/audio/mfcc20', '/DATA/YLIMED150924/keyframe/fc7')
+    print data.get_testVID().shape
