@@ -3,10 +3,15 @@ from tensorflow.models.rnn import rnn, rnn_cell
 import time
 import numpy as np
 import mdl_data
+import sys
+
+GPUNUM = sys.argv[1]
+FILEPATH = sys.argv[2]
+
 
 # Network Parameters
 learning_rate = 0.001
-training_epochs = 10
+training_epochs = 100
 batch_size = 32
 display_step = 1
 
@@ -28,7 +33,7 @@ n_classes = 10 # YLI_MED total classes (0-9 digits)
 dropout = 0.75
 tr = 1.
 
-with tf.device('/gpu:0'):
+with tf.device('/gpu:' + GPUNUM):
     #-------------------------------Struct Graph
     # tf Graph input
     x_aud = tf.placeholder("float", [None, n_input_aud])
@@ -146,7 +151,7 @@ with tf.device('/gpu:0'):
         return labels_one_hot
 
     # Load data
-    data = mdl_data.YLIMED('YLIMED_info.csv', '/DATA/YLIMED150924/audio/mfcc20', '/DATA/YLIMED150924/keyframe/fc7')
+    data = mdl_data.YLIMED('YLIMED_info.csv', FILEPATH + '/YLIMED150924/audio/mfcc20', FILEPATH + '/YLIMED150924/keyframe/fc7')
     X_img_train = data.get_img_X_train()
     X_aud_train = data.get_aud_X_train()
     y_train = data.get_y_train()
@@ -175,7 +180,7 @@ with tf.device('/gpu:0'):
             for i in range(total_batch):
                 batch_x_aud, batch_x_img, batch_ys, finish = data.next_batch_multi(X_aud_train, X_img_train, Y_train, batch_size, len(Y_train))
                 # Fit traning using batch data
-                sess.run(optimizer, feed_dict = {x_aud: batch_x_aud, x_img: batch_x_img, y: batch_ys, keep_prob: dropout, keep_tr: 1.})
+                sess.run(optimizer, feed_dict = {x_aud: batch_x_aud, x_img: batch_x_img, y: batch_ys, keep_prob: dropout, keep_tr: teststruct})
                 # Compute average loss
                 avg_cost += sess.run(cost, feed_dict = {x_aud: batch_x_aud, x_img: batch_x_img, y: batch_ys, keep_prob: 1., keep_tr: teststruct}) / total_batch
                 #Shuffling
