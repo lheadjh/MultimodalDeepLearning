@@ -35,7 +35,7 @@ with tf.device('/gpu:' + GPUNUM):
 
     learning_rate = 0.001
     training_epochs = 100
-    batch_size = 32
+    batch_size = 256
     display_step = 1
 
     # Network Parameters
