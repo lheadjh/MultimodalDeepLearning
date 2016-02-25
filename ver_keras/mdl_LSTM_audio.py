@@ -55,17 +55,38 @@ model.compile('rmsprop', {'output':'categorical_crossentropy'})
 history = model.fit({'input':X_train, 'output':Y_train}, nb_epoch=10)
 model.save_weights('LSTM0120.model', overwrite=False)
 
-score = model.evaluate({'input':X_test, 'output':Y_test})
-acc = accuracy(Y_test, np.round(np.array(model.predict({'input':X_test})['output'])))
-print 'Test score:	', score
-print 'Test accuracy:	', acc
-
 pred = np.array(model.predict({'input':X_test})['output'])
 ac = 0
 for i in range(0, len(X_test)):
     if np.argmax(Y_test[i]) == np.argmax(pred[i]):
         ac += 1
-print 'Test accuracy:	', float(ac) / float(len(X_test))
+print 'Test per frame accuracy: ', float(ac) / float(len(X_test))
+
+#test per VID
+vid = data.get_testVID()
+setvid = list(set(vid))
+totalvid = np.zeros(len(setvid))
+corrvid = np.zeros(len(setvid))
+
+for temp in vid:
+    totalvid[setvid.index(temp)] += 1
+                                                                                      
+for i in range(0, len(X_test)):
+    if np.argmax(Y_test[i]) == np.argmax(pred[i]):
+        corrvid[setvid.index(vid[i])] += 1
+
+accmat = corrvid / totalvid
+
+acc = 0
+total = 0
+for i in accmat:
+    total += 1
+    if i > 0.5:
+        acc += 1
+print 'Test per VID accuracy: ', float(acc) / float(total)
+
+
+
 
 #https://github.com/fchollet/keras/blob/master/examples/imdb_bidirectional_lstm.py
 #https://github.com/fchollet/keras/issues/1063

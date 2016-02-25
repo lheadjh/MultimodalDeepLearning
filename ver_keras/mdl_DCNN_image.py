@@ -24,6 +24,10 @@ X_test = data.get_img_X_test()
 y_train = data.get_y_train()
 y_test = data.get_y_test()
 
+p = np.random.permutation(len(y_train))
+X_train = X_train[p]
+y_train = y_train[p]
+
 max_features = len(X_train)	#43599
 maxlen = len(X_train[0])	#2000
 batch_size = 32
@@ -51,19 +55,38 @@ model.add_node(Dense(10, activation='softmax'), name='soft_max', input='dense2')
 model.add_output(name='output', input='soft_max')
 model.compile('rmsprop', {'output':'categorical_crossentropy'})
 
-history = model.fit({'input':X_train, 'output':Y_train}, nb_epoch=10)
-
-score = model.evaluate({'input':X_test, 'output':Y_test})
-acc = accuracy(Y_test, np.round(np.array(model.predict({'input':X_test})['output'])))
-print 'Test score:	', score
-print 'Test accuracy:	', acc
+history = model.fit({'input':X_train, 'output':Y_train}, nb_epoch=10, batch_size = batch_size)
 
 pred = np.array(model.predict({'input':X_test})['output'])
 ac = 0
 for i in range(0, len(X_test)):
     if np.argmax(Y_test[i]) == np.argmax(pred[i]):
         ac += 1
-print 'Test accuracy:	', float(ac) / float(len(X_test))
+print 'Test per frame accuracy: ', float(ac) / float(len(X_test))
+
+##test per vid
+vid = data.get_testVID()
+setvid = list(set(vid))
+totalvid = np.zeros(len(setvid))
+corrvid = np.zeros(len(setvid))
+
+for temp in vid:
+    totalvid[setvid.index(temp)] += 1
+
+for i in range(0, len(X_test)):
+    if np.argmax(Y_test[i]) == np.argmax(pred[i]):
+        corrvid[setvid.index(vid[i])] += 1
+
+accmat = corrvid / totalvid
+
+acc = 0
+total = 0
+for i in accmat:
+    total += 1
+    if i > 0.6:
+        acc += 1
+print 'Test per VID accuracy: ', float(acc) / float(total)
+
 
 #model.add_node(Dropout(0.5), name='dropout', input='dense', )
 #model.add_node(Embedding(max_features, 128, input_length=maxlen), name='embedding', input='input')
