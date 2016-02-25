@@ -12,8 +12,8 @@ FILEPATH = sys.argv[3]
 
 # Network Parameters
 learning_rate = 0.001
-training_epochs = 100
-batch_size = 32
+training_epochs = 200
+batch_size = 256
 display_step = 1
 
 n_input_img = 4096 # YLI_MED image data input (data shape: 4096, fc7 layer output)
