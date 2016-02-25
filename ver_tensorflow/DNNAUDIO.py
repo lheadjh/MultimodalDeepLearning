@@ -19,7 +19,7 @@ with tf.device('/gpu:' + GPUNUM):
 
     learning_rate = 0.001
     training_epochs = 100
-    batch_size = 32
+    batch_size = 256
     display_step = 1
 
     # Network Parameters
@@ -27,7 +27,7 @@ with tf.device('/gpu:' + GPUNUM):
     n_hidden_2 = 600 # 2nd layer num features
     n_input = 2000 # YLI_MED audio data input (data shape: 2000, mfcc output)
     n_classes = 10 # YLI_MED total classes (0-9 digits)
-
+    dropout = 1
     # Load data
     data = mdl_data.YLIMED('YLIMED_info.csv', FILEPATH + '/YLIMED150924/audio/mfcc20', FILEPATH + '/YLIMED150924/keyframe/fc7')
     X_aud_train = data.get_aud_X_train()
