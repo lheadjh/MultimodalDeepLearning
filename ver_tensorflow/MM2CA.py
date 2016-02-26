@@ -12,7 +12,7 @@ FILEPATH = sys.argv[3]
 
 # Network Parameters
 learning_rate = 0.001
-training_epochs = 100
+training_epochs = 200
 batch_size = 256
 display_step = 1
 
