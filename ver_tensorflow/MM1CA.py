@@ -185,6 +185,7 @@ with tf.device('/gpu:' + GPUNUM):
                 #Shuffling
                 if finish:
                     p = np.random.permutation(len(Y_train))
+                    X_aud_train = X_aud_train[p]
                     X_img_train = X_img_train[p]
                     Y_train = Y_train[p]
             # Display logs per epoch step
