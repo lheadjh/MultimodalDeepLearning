@@ -296,12 +296,20 @@ class YLIMED():
     def new_get_aud_X_train(self):
         print 'Load New Training Audio Data'
         return self.__new_get_part_data('Aud', 'Training')
+    def new_get_img_X_train(self):
+        print 'Load New Training Image Data'
+        return self.__new_get_part_data('Img', 'Training')
     def new_get_y_train(self):
         print 'Load Training Label Data'
         return self.__new_get_part_data('Lab', 'Training')
+    
+    
     def new_get_aud_X_test(self):
         print 'Load Test Audio Data'
         return self.__new_get_part_data('Aud', 'Test')
+    def new_get_img_X_test(self):
+        print 'Load Test Image Data'
+        return self.__new_get_part_data('Img', 'Test')
     def new_get_y_test(self):
         print 'Load Test Label Data'
         return self.__new_get_part_data('Lab', 'Test')

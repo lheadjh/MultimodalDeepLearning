@@ -37,33 +37,9 @@ with tf.device('/gpu:' + GPUNUM):
     x_img = tf.placeholder("float", [None, n_input_img])
     y = tf.placeholder("float", [None, n_classes])
     keep_prob = tf.placeholder(tf.float32) #dropout (keep probability)
-    keep_tr = tf.placeholder(tf.float32)
-
-    def calculatCA(_tp1, _tp2, size, _b_size):
-        first = True
-        tp1 = tf.split(0, _b_size, _tp1)
-        tp2 = tf.split(0, _b_size, _tp2)
-        for i in range(_b_size):
-            input1 = tf.reshape(tp1[i], shape=[size, 1])
-            input2 = tf.reshape(tp2[i], shape=[size, 1])
-
-            upper = tf.matmul(tf.transpose(tf.sub(input1, tf.reduce_mean(input1))), tf.sub(input2, tf.reduce_mean(input2)))        
-            _tp1 = tf.reduce_sum(tf.mul(tf.sub(input1, tf.reduce_mean(input1)), tf.sub(input1, tf.reduce_mean(input1))))
-            _tp2 = tf.reduce_sum(tf.mul(tf.sub(input2, tf.reduce_mean(input2)), tf.sub(input2, tf.reduce_mean(input2))))
-            down = tf.sqrt(tf.mul(_tp1, _tp2))
-            factor = tf.abs(tf.div(upper, down))
-            
-            if first:
-                output = factor
-                first = False
-            else:
-                output = tf.concat(1, [output, factor])
-
-        return tf.transpose(output)
-    
+  
     # Create model
-    def multilayer_perceptron(_X_aud, _X_img, _w_aud, _b_aud, _w_img, _b_img, _w_out, _b_out, _dropout, _b_size):
-        print _X_aud
+    def multilayer_perceptron(_X_aud, _X_img, _w_aud, _b_aud, _w_img, _b_img, _w_out, _b_out, _dropout):
         #aud
         aud_layer_1 = tf.nn.relu(tf.add(tf.matmul(_X_aud, _w_aud['h1']), _b_aud['b1'])) #Hidden layer with RELU activation
         aud_layer_2 = tf.nn.relu(tf.add(tf.matmul(aud_layer_1, _w_aud['h2']), _b_aud['b2'])) #Hidden layer with RELU activation
@@ -72,28 +48,19 @@ with tf.device('/gpu:' + GPUNUM):
         img_layer_1 = tf.nn.relu(tf.add(tf.matmul(_X_img, _w_img['h1']), _b_img['b1'])) #Hidden layer with RELU activation
         drop_1 = tf.nn.dropout(img_layer_1, _dropout)
         img_layer_2 = tf.nn.relu(tf.add(tf.matmul(drop_1, _w_img['h2']), _b_img['b2'])) #Hidden layer with RELU activation
-        #drop_2 = tf.nn.dropout(img_layer_2, _dropout)
+        drop_2 = tf.nn.dropout(img_layer_2, _dropout)
         #img_out = tf.matmul(drop_2, _w_img['out']) + _b_img['out']
 
-        '''
-        Merge with CA
-        '''
-        factor = calculatCA(aud_layer_2, img_layer_2, 600, _b_size)
-        factor = tf.reshape(tf.diag(factor), shape=[_b_size, _b_size])
-        merge_sum = tf.add(aud_layer_2, img_layer_2)
-        facmat = tf.nn.relu(tf.matmul(factor, merge_sum))
-   
-    
+        facmat = tf.add(aud_layer_2, drop_2)
+        
         #out_drop = tf.nn.dropout(merge_sum, _dropout)
         out_layer_1 = tf.nn.relu(tf.add(tf.matmul(facmat, _w_out['h1']), _b_out['b1'])) #Hidden layer with RELU activation
         out_layer_2 = tf.nn.relu(tf.add(tf.matmul(out_layer_1, _w_out['h2']), _b_out['b2'])) #Hidden layer with RELU activation
-        
         
         #return out_drop
         return tf.matmul(out_layer_2, _w_out['out']) + _b_out['out']
 
     # Store layers weight & bias
-
     w_out = {
         'h1': tf.Variable(tf.random_normal([n_hidden_1_in, n_hidden_1_out])),
         'h2': tf.Variable(tf.random_normal([n_hidden_1_out, n_hidden_2_out])),
@@ -127,7 +94,7 @@ with tf.device('/gpu:' + GPUNUM):
     }
 
     # Construct model
-    pred = multilayer_perceptron(x_aud, x_img, w_aud, b_aud, w_img, b_img, w_out, b_out, keep_prob, batch_size)
+    pred = multilayer_perceptron(x_aud, x_img, w_aud, b_aud, w_img, b_img, w_out, b_out, keep_prob)
 
     # Define loss and optimizer
     cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(pred, y)) # Softmax loss
@@ -135,8 +102,11 @@ with tf.device('/gpu:' + GPUNUM):
 
     # Initializing the variables
     init = tf.initialize_all_variables()
-
-    #-------------------------------Load data
+'''
+-------------------------------
+Load data
+-------------------------------
+'''
     #Source reference: https://github.com/aymericdamien/TensorFlow-Examples.git/input_data.py
     def dense_to_one_hot(labels_dense, num_classes=10):
         """Convert class labels from scalars to one-hot vectors."""
@@ -164,8 +134,11 @@ with tf.device('/gpu:' + GPUNUM):
     X_aud_test = data.get_aud_X_test()
     y_test = data.get_y_test()
     Y_test = dense_to_one_hot(y_test)
-
-    #-------------------------------Launch the graph
+'''
+-------------------------------
+Launch the graph
+-------------------------------
+'''
     with tf.Session(config=tf.ConfigProto(allow_soft_placement=True, log_device_placement=True)) as sess:
         sess.run(init)
         #Training cycle
@@ -189,22 +162,9 @@ with tf.device('/gpu:' + GPUNUM):
             if epoch % display_step == 0:
                 print "Epoch:", '%04d' % (epoch+1), "cost=", "{:.9f}".format(avg_cost)
         print "Optimization Finished!"
-        
+
         # Test model
-        batch_size = 32
-        #predtest = multilayer_perceptron(x_aud, x_img, w_aud, b_aud, w_img, b_img, w_out, b_out, keep_prob, 1)
         correct_prediction = tf.equal(tf.argmax(pred, 1), tf.argmax(y, 1))
-        test = tf.reduce_sum(tf.cast(correct_prediction, "float"))
-        total = 0
-        correct = 0
-        for i in range(int(len(Y_test)/batch_size)):
-            total += batch_size
-            batch_x_aud, batch_x_img, batch_ys, finish = data.next_batch_multi(X_aud_test, X_img_test, Y_test, batch_size, len(Y_test))
-            correct += test.eval({x_aud: batch_x_aud, x_img: batch_x_img, y: batch_ys, keep_prob: 1.})
-        print int(len(Y_test)/batch_size)
-        print total
-        print correct
         # Calculate accuracy
-        #accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))     
-        #for epoch in range(Y_test):
-        #    print "Accuracy:", accuracy.eval({x_aud: X_aud_test, x_img: X_img_test, y: Y_test, keep_prob: 1.})
+        accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
+        print "Accuracy:", accuracy.eval({x_aud: X_aud_test, x_img: X_img_test, y: Y_test, keep_prob: 1.})
