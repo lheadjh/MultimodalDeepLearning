@@ -29,7 +29,7 @@ n_hidden_1_out = 256
 n_hidden_2_out = 128
 
 n_classes = 10 # YLI_MED total classes (0-9 digits)
-dropout = 0.75
+dropout = 0.5
 tr = 1.
 
 with tf.device('/gpu:' + GPUNUM):
@@ -64,37 +64,34 @@ with tf.device('/gpu:' + GPUNUM):
     # Create model
     def multilayer_perceptron(_X_aud, _X_img, _w_aud, _b_aud, _w_img, _b_img, _w_out, _b_out, _dropout, _tr):
 
-        #layer 1
-        aud_layer_1 = tf.nn.relu(tf.add(tf.matmul(_X_aud, _w_aud['h1']), _b_aud['b1']))
-        img_layer_1 = tf.nn.relu(tf.add(tf.matmul(_X_img, _w_img['h1']), _b_img['b1']))
-        drop_1 = tf.nn.dropout(img_layer_1, _dropout)
-
-        if _tr == 1:
-            tp1 = tf.split(0, batch_size, aud_layer_1)
-            tp2 = tf.split(0, batch_size, drop_1)
-            factor = calculatCA(tp1, tp2, 1000)
-            
-            aud_layer_1 = tf.nn.relu(tf.matmul(factor, aud_layer_1))
-            drop_1 = tf.nn.relu(tf.matmul(factor, drop_1))
-
-        #layer 2
+        #aud
+        aud_layer_1 = tf.nn.relu(tf.add(tf.matmul(_X_aud, _w_aud['h1']), _b_aud['b1'])) #Hidden layer with RELU activation
         aud_layer_2 = tf.nn.relu(tf.add(tf.matmul(aud_layer_1, _w_aud['h2']), _b_aud['b2'])) #Hidden layer with RELU activation
+        #aud_out = tf.matmul(aud_layer_2, _w_aud['out']) + _b_aud['out']
+        #Image
+        img_layer_1 = tf.nn.relu(tf.add(tf.matmul(_X_img, _w_img['h1']), _b_img['b1'])) #Hidden layer with RELU activation
+        drop_1 = tf.nn.dropout(img_layer_1, _dropout)
         img_layer_2 = tf.nn.relu(tf.add(tf.matmul(drop_1, _w_img['h2']), _b_img['b2'])) #Hidden layer with RELU activation
         drop_2 = tf.nn.dropout(img_layer_2, _dropout)
+        #img_out = tf.matmul(drop_2, _w_img['out']) + _b_img['out']
 
-        #layer 2 out merge
         if _tr == 1:
             tp1 = tf.split(0, batch_size, aud_layer_2)
             tp2 = tf.split(0, batch_size, drop_2)
+
             factor = calculatCA(tp1, tp2, 600)
+        
             merge_sum = tf.nn.relu(tf.add(aud_layer_2, drop_2))
             facmat = tf.nn.relu(tf.matmul(factor, merge_sum))
         else:
             facmat = tf.nn.relu(tf.add(aud_layer_2, drop_2))
     
-        #output layer
+        #out_drop = tf.nn.dropout(merge_sum, _dropout)
         out_layer_1 = tf.nn.relu(tf.add(tf.matmul(facmat, _w_out['h1']), _b_out['b1'])) #Hidden layer with RELU activation
         out_layer_2 = tf.nn.relu(tf.add(tf.matmul(out_layer_1, _w_out['h2']), _b_out['b2'])) #Hidden layer with RELU activation
+        
+        
+        #return out_drop
         return tf.matmul(out_layer_2, _w_out['out']) + _b_out['out']
 
     # Store layers weight & bias

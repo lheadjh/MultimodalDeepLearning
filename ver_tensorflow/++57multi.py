@@ -29,7 +29,7 @@ n_hidden_1_out = 256
 n_hidden_2_out = 128
 
 n_classes = 10 # YLI_MED total classes (0-9 digits)
-dropout = 0.75
+dropout = 0.5
 tr = 1.
 
 with tf.device('/gpu:' + GPUNUM):
@@ -41,11 +41,11 @@ with tf.device('/gpu:' + GPUNUM):
     keep_prob = tf.placeholder(tf.float32) #dropout (keep probability)
     keep_tr = tf.placeholder(tf.float32)
 
-    def calculatCA(_tp1, _tp2, size):
+    def calculatCA(_tp1, _tp2):
         first = True
         for i in range(batch_size):
-            input1 = tf.reshape(tp1[i], shape=[size, 1])
-            input2 = tf.reshape(tp2[i], shape=[size, 1]) 
+            input1 = tf.reshape(tp1[i], shape=[4, 1])
+            input2 = tf.reshape(tp2[i], shape=[4, 1]) 
 
             upper = tf.matmul(tf.transpose(tf.sub(input1, tf.reduce_mean(input1))), tf.sub(input2, tf.reduce_mean(input2)))
             t1 = tf.reduce_sum(tf.mul(tf.sub(input1, tf.reduce_mean(input1)), tf.sub(input1, tf.reduce_mean(input1))))
@@ -70,9 +70,9 @@ with tf.device('/gpu:' + GPUNUM):
         drop_1 = tf.nn.dropout(img_layer_1, _dropout)
 
         if _tr == 1:
-            tp1 = tf.split(0, batch_size, aud_layer_1)
-            tp2 = tf.split(0, batch_size, drop_1)
-            factor = calculatCA(tp1, tp2, 1000)
+            tp1 = tf.split(0, 1000, aud_layer_1)
+            tp2 = tf.split(0, 1000, drop_1)
+            factor = calculatCA(tp1, tp2)
             
             aud_layer_1 = tf.nn.relu(tf.matmul(factor, aud_layer_1))
             drop_1 = tf.nn.relu(tf.matmul(factor, drop_1))
@@ -86,7 +86,7 @@ with tf.device('/gpu:' + GPUNUM):
         if _tr == 1:
             tp1 = tf.split(0, batch_size, aud_layer_2)
             tp2 = tf.split(0, batch_size, drop_2)
-            factor = calculatCA(tp1, tp2, 600)
+            factor = calculatCA(tp1, tp2)
             merge_sum = tf.nn.relu(tf.add(aud_layer_2, drop_2))
             facmat = tf.nn.relu(tf.matmul(factor, merge_sum))
         else:

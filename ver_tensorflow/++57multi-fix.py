@@ -29,7 +29,7 @@ n_hidden_1_out = 256
 n_hidden_2_out = 128
 
 n_classes = 10 # YLI_MED total classes (0-9 digits)
-dropout = 0.75
+dropout = 0.5
 tr = 1.
 
 with tf.device('/gpu:' + GPUNUM):
