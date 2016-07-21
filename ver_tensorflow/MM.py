@@ -1,5 +1,4 @@
 import tensorflow as tf
-from tensorflow.models.rnn import rnn, rnn_cell
 import time
 import numpy as np
 import mdl_data
@@ -51,7 +50,7 @@ with tf.device('/gpu:' + GPUNUM):
         drop_2 = tf.nn.dropout(img_layer_2, _dropout)
         #img_out = tf.matmul(drop_2, _w_img['out']) + _b_img['out']
 
-        facmat = tf.add(aud_layer_2, drop_2)
+        facmat = tf.nn.relu(tf.add(aud_layer_2, drop_2))
         
         #out_drop = tf.nn.dropout(merge_sum, _dropout)
         out_layer_1 = tf.nn.relu(tf.add(tf.matmul(facmat, _w_out['h1']), _b_out['b1'])) #Hidden layer with RELU activation
@@ -102,11 +101,11 @@ with tf.device('/gpu:' + GPUNUM):
 
     # Initializing the variables
     init = tf.initialize_all_variables()
-'''
--------------------------------
-Load data
--------------------------------
-'''
+    '''
+    -------------------------------
+    Load data
+    -------------------------------
+    '''
     #Source reference: https://github.com/aymericdamien/TensorFlow-Examples.git/input_data.py
     def dense_to_one_hot(labels_dense, num_classes=10):
         """Convert class labels from scalars to one-hot vectors."""
@@ -134,11 +133,11 @@ Load data
     X_aud_test = data.get_aud_X_test()
     y_test = data.get_y_test()
     Y_test = dense_to_one_hot(y_test)
-'''
--------------------------------
-Launch the graph
--------------------------------
-'''
+    '''
+    -------------------------------
+    Launch the graph
+    -------------------------------
+    '''
     with tf.Session(config=tf.ConfigProto(allow_soft_placement=True, log_device_placement=True)) as sess:
         sess.run(init)
         #Training cycle
