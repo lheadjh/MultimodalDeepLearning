@@ -200,6 +200,7 @@ with tf.device('/gpu:' + GPUNUM):
             total += batch_size
             batch_x_aud, batch_x_img, batch_ys, finish = data.next_batch_multi(X_aud_test, X_img_test, Y_test, batch_size, len(Y_test))
             correct += test.eval({x_aud: batch_x_aud, x_img: batch_x_img, y: batch_ys, keep_prob: 1.})
+        print 'MM1CA.py'
         print int(len(Y_test)/batch_size)
         print correct
         print total

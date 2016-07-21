@@ -11,16 +11,17 @@ FILEPATH = sys.argv[2]
 # Network Parameters
 learning_rate = 0.001
 training_epochs = 20
-batch_size = 32 
+batch_size = 32
 display_step = 1
 
 n_input_img = 4096 # YLI_MED image data input (data shape: 4096, fc7 layer output)
 n_hidden_1_img = 1000 # 1st layer num features 1000
 n_hidden_2_img = 600 # 2nd layer num features 600
 
-n_input_aud = 2000 # YLI_MED audio data input (data shape: 2000, mfcc output)
-n_hidden_1_aud = 1000 # 1st layer num features 1000
-n_hidden_2_aud = 600 # 2nd layer num features 600
+n_input_aud = 100
+n_steps_aud = 20  # YLI_MED audio data input (data shape: 2000, mfcc output)
+n_hidden_1_aud = 300 # 1st layer num features 1000
+#n_hidden_2_aud = 600 # 2nd layer num features 600
 
 n_hidden_1_in = 600
 n_hidden_1_out = 256
@@ -32,12 +33,11 @@ dropout = 0.75
 with tf.device('/gpu:' + GPUNUM):
     #-------------------------------Struct Graph
     # tf Graph input
-    x_aud = tf.placeholder("float", [None, n_input_aud])
+    x_aud = tf.placeholder("float", [None, n_steps_aud, n_input_aud])
     x_img = tf.placeholder("float", [None, n_input_img])
     y = tf.placeholder("float", [None, n_classes])
     keep_prob = tf.placeholder(tf.float32) #dropout (keep probability)
-    keep_tr = tf.placeholder(tf.float32)
-
+  
     def calculatCA(_tp1, _tp2, size, _b_size):
         first = True
         tp1 = tf.split(0, _b_size, _tp1)
@@ -59,40 +59,52 @@ with tf.device('/gpu:' + GPUNUM):
                 output = tf.concat(1, [output, factor])
 
         return tf.transpose(output)
-    
+
     # Create model
-    def multilayer_perceptron(_X_aud, _X_img, _w_aud, _b_aud, _w_img, _b_img, _w_out, _b_out, _dropout, _b_size):
-        print _X_aud
-        #aud
-        aud_layer_1 = tf.nn.relu(tf.add(tf.matmul(_X_aud, _w_aud['h1']), _b_aud['b1'])) #Hidden layer with RELU activation
-        aud_layer_2 = tf.nn.relu(tf.add(tf.matmul(aud_layer_1, _w_aud['h2']), _b_aud['b2'])) #Hidden layer with RELU activation
-        #aud_out = tf.matmul(aud_layer_2, _w_aud['out']) + _b_aud['out']
-        #Image
+    def Multimodal(_X_aud, _X_img, _w_aud, _b_aud, _w_img, _b_img, _w_out, _b_out, _dropout, _b_size):
+        #------------------------------------aud
+        # Permuting batch_size and n_steps
+        _X_aud = tf.transpose(_X_aud, [1, 0, 2])
+        # Reshape to (n_steps*batch_size, n_input)
+        _X_aud = tf.reshape(_X_aud, [-1, n_input_aud])
+        # Split to get a list of 'n_steps' tensors of shape (batch_size, n_input)
+        _X_aud = tf.split(0, n_steps_aud, _X_aud)
+
+        # Define lstm cells with tensorflow
+        # Forward direction cell
+        lstm_fw_cell = tf.nn.rnn_cell.BasicLSTMCell(n_hidden_1_aud, forget_bias=1.0)
+        # Backward direction cell
+        lstm_bw_cell = tf.nn.rnn_cell.BasicLSTMCell(n_hidden_1_aud, forget_bias=1.0)
+
+        # Get lstm cell output
+        try:
+            aud_outputs, _, _ = tf.nn.bidirectional_rnn(lstm_fw_cell, lstm_bw_cell, _X_aud, dtype=tf.float32)
+        except Exception: # Old TensorFlow version only returns outputs not states
+            aud_outputs = tf.nn.bidirectional_rnn(lstm_fw_cell, lstm_bw_cell, _X_aud, dtype=tf.float32)
+            
+        #------------------------------------Image
         img_layer_1 = tf.nn.relu(tf.add(tf.matmul(_X_img, _w_img['h1']), _b_img['b1'])) #Hidden layer with RELU activation
         drop_1 = tf.nn.dropout(img_layer_1, _dropout)
         img_layer_2 = tf.nn.relu(tf.add(tf.matmul(drop_1, _w_img['h2']), _b_img['b2'])) #Hidden layer with RELU activation
-        #drop_2 = tf.nn.dropout(img_layer_2, _dropout)
+        drop_2 = tf.nn.dropout(img_layer_2, _dropout)
         #img_out = tf.matmul(drop_2, _w_img['out']) + _b_img['out']
 
         '''
         Merge with CA
         '''
-        factor = calculatCA(aud_layer_2, img_layer_2, 600, _b_size)
+        factor = calculatCA(aud_outputs[-1], drop_2, 600, _b_size)
         factor = tf.reshape(tf.diag(factor), shape=[_b_size, _b_size])
-        merge_sum = tf.add(aud_layer_2, img_layer_2)
+        merge_sum = tf.add(aud_outputs[-1], drop_2)
         facmat = tf.nn.relu(tf.matmul(factor, merge_sum))
-   
-    
+        
         #out_drop = tf.nn.dropout(merge_sum, _dropout)
         out_layer_1 = tf.nn.relu(tf.add(tf.matmul(facmat, _w_out['h1']), _b_out['b1'])) #Hidden layer with RELU activation
         out_layer_2 = tf.nn.relu(tf.add(tf.matmul(out_layer_1, _w_out['h2']), _b_out['b2'])) #Hidden layer with RELU activation
         
-        
         #return out_drop
         return tf.matmul(out_layer_2, _w_out['out']) + _b_out['out']
-
+    
     # Store layers weight & bias
-
     w_out = {
         'h1': tf.Variable(tf.random_normal([n_hidden_1_in, n_hidden_1_out])),
         'h2': tf.Variable(tf.random_normal([n_hidden_1_out, n_hidden_2_out])),
@@ -105,13 +117,13 @@ with tf.device('/gpu:' + GPUNUM):
     }
 
     w_aud = {
-        'h1': tf.Variable(tf.random_normal([n_input_aud, n_hidden_1_aud])),
-        'h2': tf.Variable(tf.random_normal([n_hidden_1_aud, n_hidden_2_aud])),
-        'out': tf.Variable(tf.random_normal([n_hidden_2_aud, n_classes]))
+        'h1': tf.Variable(tf.random_normal([n_input_aud, 2*n_hidden_1_aud])),
+        #'h2': tf.Variable(tf.random_normal([n_hidden_1_aud, n_hidden_2_aud])),
+        'out': tf.Variable(tf.random_normal([2*n_hidden_1_aud, n_classes]))
     }
     b_aud = {
-        'b1': tf.Variable(tf.random_normal([n_hidden_1_aud])),
-        'b2': tf.Variable(tf.random_normal([n_hidden_2_aud])),
+        'b1': tf.Variable(tf.random_normal([2*n_hidden_1_aud])),
+        #'b2': tf.Variable(tf.random_normal([n_hidden_2_aud])),
         'out': tf.Variable(tf.random_normal([n_classes]))    
     }
     w_img = {
@@ -126,7 +138,7 @@ with tf.device('/gpu:' + GPUNUM):
     }
 
     # Construct model
-    pred = multilayer_perceptron(x_aud, x_img, w_aud, b_aud, w_img, b_img, w_out, b_out, keep_prob, batch_size)
+    pred = Multimodal(x_aud, x_img, w_aud, b_aud, w_img, b_img, w_out, b_out, keep_prob, batch_size)
 
     # Define loss and optimizer
     cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(pred, y)) # Softmax loss
@@ -134,8 +146,11 @@ with tf.device('/gpu:' + GPUNUM):
 
     # Initializing the variables
     init = tf.initialize_all_variables()
-
-    #-------------------------------Load data
+    '''
+    -------------------------------
+    Load data
+    -------------------------------
+    '''
     #Source reference: https://github.com/aymericdamien/TensorFlow-Examples.git/input_data.py
     def dense_to_one_hot(labels_dense, num_classes=10):
         """Convert class labels from scalars to one-hot vectors."""
@@ -161,10 +176,14 @@ with tf.device('/gpu:' + GPUNUM):
     # Load test data
     X_img_test = data.get_img_X_test()
     X_aud_test = data.get_aud_X_test()
+    X_aud_test = X_aud_test.reshape((-1, n_steps_aud, n_input_aud))
     y_test = data.get_y_test()
     Y_test = dense_to_one_hot(y_test)
-
-    #-------------------------------Launch the graph
+    '''
+    -------------------------------
+    Launch the graph
+    -------------------------------
+    '''
     with tf.Session(config=tf.ConfigProto(allow_soft_placement=True, log_device_placement=True)) as sess:
         sess.run(init)
         #Training cycle
@@ -174,6 +193,7 @@ with tf.device('/gpu:' + GPUNUM):
             #Loop oveer all batches
             for i in range(total_batch):
                 batch_x_aud, batch_x_img, batch_ys, finish = data.next_batch_multi(X_aud_train, X_img_train, Y_train, batch_size, len(Y_train))
+                batch_x_aud = batch_x_aud.reshape((batch_size, n_steps_aud, n_input_aud))
                 # Fit traning using batch data
                 sess.run(optimizer, feed_dict = {x_aud: batch_x_aud, x_img: batch_x_img, y: batch_ys, keep_prob: dropout})
                 # Compute average loss
@@ -188,9 +208,8 @@ with tf.device('/gpu:' + GPUNUM):
             if epoch % display_step == 0:
                 print "Epoch:", '%04d' % (epoch+1), "cost=", "{:.9f}".format(avg_cost)
         print "Optimization Finished!"
-        
+
         # Test model
-        batch_size = 32
         #predtest = multilayer_perceptron(x_aud, x_img, w_aud, b_aud, w_img, b_img, w_out, b_out, keep_prob, 1)
         correct_prediction = tf.equal(tf.argmax(pred, 1), tf.argmax(y, 1))
         test = tf.reduce_sum(tf.cast(correct_prediction, "float"))
@@ -200,6 +219,7 @@ with tf.device('/gpu:' + GPUNUM):
             total += batch_size
             batch_x_aud, batch_x_img, batch_ys, finish = data.next_batch_multi(X_aud_test, X_img_test, Y_test, batch_size, len(Y_test))
             correct += test.eval({x_aud: batch_x_aud, x_img: batch_x_img, y: batch_ys, keep_prob: 1.})
+        print 'MM_RDN_1CA.py'
         print int(len(Y_test)/batch_size)
         print correct
         print total
