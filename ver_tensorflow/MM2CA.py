@@ -66,28 +66,28 @@ with tf.device('/gpu:' + GPUNUM):
         #layer 1
         aud_layer_1 = tf.nn.relu(tf.add(tf.matmul(_X_aud, _w_aud['h1']), _b_aud['b1']))
         img_layer_1 = tf.nn.relu(tf.add(tf.matmul(_X_img, _w_img['h1']), _b_img['b1']))
-        drop_1 = tf.nn.dropout(img_layer_1, _dropout)
+        #drop_1 = tf.nn.dropout(img_layer_1, _dropout)
 
         '''
         CA 1
         '''
-        factor = calculatCA(aud_layer_1, drop_1, 1000, _b_size)
+        factor = calculatCA(aud_layer_1, img_layer_1, 1000, _b_size)
         factor = tf.reshape(tf.diag(factor), shape=[_b_size, _b_size])
         aud_layer_1 = tf.matmul(factor, aud_layer_1)
-        drop_1 = tf.nn.relu(tf.matmul(factor, drop_1))
+        img_layer_1 = tf.matmul(factor, img_layer_1)
 
         #layer 2
         aud_layer_2 = tf.nn.relu(tf.add(tf.matmul(aud_layer_1, _w_aud['h2']), _b_aud['b2'])) #Hidden layer with RELU activation
-        img_layer_2 = tf.nn.relu(tf.add(tf.matmul(drop_1, _w_img['h2']), _b_img['b2'])) #Hidden layer with RELU activation
-        drop_2 = tf.nn.dropout(img_layer_2, _dropout)
+        img_layer_2 = tf.nn.relu(tf.add(tf.matmul(img_layer_1, _w_img['h2']), _b_img['b2'])) #Hidden layer with RELU activation
+        #drop_2 = tf.nn.dropout(img_layer_2, _dropout)
 
         '''
         CA 2 & merge
         '''
-        factor = calculatCA(aud_layer_2, drop_2, 600, _b_size)
+        factor = calculatCA(aud_layer_2, img_layer_2, 600, _b_size)
         factor = tf.reshape(tf.diag(factor), shape=[_b_size, _b_size])
-        merge_sum = tf.add(aud_layer_2, drop_2)
-        facmat = tf.nn.relu(tf.matmul(factor, merge_sum))
+        merge_sum = tf.add(aud_layer_2, img_layer_2)
+        facmat = tf.matmul(factor, merge_sum)
     
         #output layer
         out_layer_1 = tf.nn.relu(tf.add(tf.matmul(facmat, _w_out['h1']), _b_out['b1'])) #Hidden layer with RELU activation
@@ -203,10 +203,12 @@ with tf.device('/gpu:' + GPUNUM):
             total += batch_size
             batch_x_aud, batch_x_img, batch_ys, finish = data.next_batch_multi(X_aud_test, X_img_test, Y_test, batch_size, len(Y_test))
             correct += test.eval({x_aud: batch_x_aud, x_img: batch_x_img, y: batch_ys, keep_prob: 1.})
-        print 'MM2CA.py'
+            
         print int(len(Y_test)/batch_size)
         print total
         print correct
+        print corrent / total
+        print 'MM2CA.py'
 '''
         # Test model
         correct_prediction = tf.equal(tf.argmax(pred, 1), tf.argmax(y, 1))

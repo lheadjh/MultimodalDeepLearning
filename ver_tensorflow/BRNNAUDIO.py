@@ -141,6 +141,6 @@ with tf.device('/gpu:' + GPUNUM):
         y_test = data.get_y_test()
         Y_test = dense_to_one_hot(y_test)
 
-        print 'BRNNAUDIO.py'
         print "Testing Accuracy:", \
             sess.run(accuracy, feed_dict={x: X_aud_test, y: Y_test})
+        print 'BRNNAUDIO.py'

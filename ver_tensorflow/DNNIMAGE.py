@@ -109,5 +109,6 @@ with tf.device('/gpu:' + GPUNUM):
         correct_prediction = tf.equal(tf.argmax(pred, 1), tf.argmax(y, 1))
         # Calculate accuracy
         accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
-        print 'DNNIMAGE.py'
+
         print "Accuracy:", accuracy.eval({x: X_img_test, y: Y_test, keep_prob: 1.})
+        print 'DNNIMAGE.py'

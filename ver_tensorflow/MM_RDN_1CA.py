@@ -15,7 +15,7 @@ batch_size = 32
 display_step = 1
 
 n_input_img = 4096 # YLI_MED image data input (data shape: 4096, fc7 layer output)
-n_hidden_1_img = 1000 # 1st layer num features 1000
+n_hidden_1_img = 600 # 1st layer num features 1000
 n_hidden_2_img = 600 # 2nd layer num features 600
 
 n_input_aud = 100
@@ -28,7 +28,7 @@ n_hidden_1_out = 256
 n_hidden_2_out = 128
 
 n_classes = 10 # YLI_MED total classes (0-9 digits)
-dropout = 0.75
+dropout = 1#0.75
 
 with tf.device('/gpu:' + GPUNUM):
     #-------------------------------Struct Graph
@@ -87,14 +87,14 @@ with tf.device('/gpu:' + GPUNUM):
         drop_1 = tf.nn.dropout(img_layer_1, _dropout)
         img_layer_2 = tf.nn.relu(tf.add(tf.matmul(drop_1, _w_img['h2']), _b_img['b2'])) #Hidden layer with RELU activation
         drop_2 = tf.nn.dropout(img_layer_2, _dropout)
-        #img_out = tf.matmul(drop_2, _w_img['out']) + _b_img['out']
+        img_out = tf.matmul(drop_2, _w_img['out']) + _b_img['out']
 
         '''
         Merge with CA
         '''
-        factor = calculatCA(aud_outputs[-1], drop_2, 600, _b_size)
+        factor = calculatCA(aud_outputs[-1], drop_1, 600, _b_size)
         factor = tf.reshape(tf.diag(factor), shape=[_b_size, _b_size])
-        merge_sum = tf.add(aud_outputs[-1], drop_2)
+        merge_sum = tf.add(aud_outputs[-1], drop_1)
         facmat = tf.nn.relu(tf.matmul(factor, merge_sum))
         
         #out_drop = tf.nn.dropout(merge_sum, _dropout)
@@ -129,7 +129,7 @@ with tf.device('/gpu:' + GPUNUM):
     w_img = {
         'h1': tf.Variable(tf.random_normal([n_input_img, n_hidden_1_img])),
         'h2': tf.Variable(tf.random_normal([n_hidden_1_img, n_hidden_2_img])),
-        'out': tf.Variable(tf.random_normal([n_hidden_2_img, n_classes]))    
+        'out': tf.Variable(tf.random_normal([n_hidden_1_img, n_classes]))    
     }
     b_img = {
         'b1': tf.Variable(tf.random_normal([n_hidden_1_img])),
@@ -219,11 +219,12 @@ with tf.device('/gpu:' + GPUNUM):
             total += batch_size
             batch_x_aud, batch_x_img, batch_ys, finish = data.next_batch_multi(X_aud_test, X_img_test, Y_test, batch_size, len(Y_test))
             correct += test.eval({x_aud: batch_x_aud, x_img: batch_x_img, y: batch_ys, keep_prob: 1.})
-        print 'MM_RDN_1CA.py'
+
         print int(len(Y_test)/batch_size)
         print correct
         print total
         print float(correct/total)
+        print 'MM_RDN_1CA.py'
         # Calculate accuracy
         #accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))     
         #for epoch in range(Y_test):
