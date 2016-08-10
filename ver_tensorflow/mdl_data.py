@@ -206,7 +206,12 @@ class YLIMED():
                             add = []
                             for j in range(100):
                                 add += [float(x) for x in data[i*100+j].split()]
-                            output.append(add)              
+                            output.append(add)
+                    elif Aud_Img_Lab == 'Img':
+                        for i in range(40):
+                            add = []
+                            add = [float(x) for x in data[i].split()]
+                            output.append(add)
                 else:
                     if Aud_Img_Lab == 'Aud':
                         checkout = 0
@@ -221,18 +226,19 @@ class YLIMED():
                                     break
                             if checkout == 40:
                                 break
-                                
-                '''    
-                for i in range(int(range_len)):
-                    add = []
-                    if Aud_Img_Lab == 'Aud':
-                        for j in range(100):
-                            add += [float(x) for x in data[i*100+j].split()]
                     elif Aud_Img_Lab == 'Img':
-                        add = [float(x) for x in data[i].split()]
+                        checkout = 0
+                        while(1):
+                            for i in range(int(range_len)):
+                                add = []
+                                add = [float(x) for x in data[i].split()]
+                                output.append(add)
+                                checkout += 1
+                                if checkout == 40:
+                                    break
+                            if checkout == 40:
+                                break
 
-                    output.append(add)
-                '''
         tmpinfo.close()
         output = np.asarray(output)
         print ', finish'
@@ -300,18 +306,18 @@ class YLIMED():
         print 'Load New Training Image Data'
         return self.__new_get_part_data('Img', 'Training')
     def new_get_y_train(self):
-        print 'Load Training Label Data'
+        print 'Load New Training Label Data'
         return self.__new_get_part_data('Lab', 'Training')
     
     
     def new_get_aud_X_test(self):
-        print 'Load Test Audio Data'
+        print 'Load New Test Audio Data'
         return self.__new_get_part_data('Aud', 'Test')
     def new_get_img_X_test(self):
-        print 'Load Test Image Data'
+        print 'Load New Test Image Data'
         return self.__new_get_part_data('Img', 'Test')
     def new_get_y_test(self):
-        print 'Load Test Label Data'
+        print 'Load New Test Label Data'
         return self.__new_get_part_data('Lab', 'Test')
 #TODO
         # print 'Pickling...'
