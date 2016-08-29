@@ -46,7 +46,7 @@ with tf.device('/gpu:' + GPUNUM):
     # Network Parameters
     n_input = 100
     n_steps = 20 # input * steps = 2000
-    n_hidden = 256 # hidden layer num of features
+    n_hidden = 300 # hidden layer num of features
     n_classes = 10 # YLI_MED total classes (0-9 digits)
 
     # tf Graph input
