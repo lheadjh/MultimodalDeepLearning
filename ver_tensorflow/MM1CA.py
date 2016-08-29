@@ -11,7 +11,7 @@ FILEPATH = sys.argv[2]
 # Network Parameters
 learning_rate = 0.001
 training_epochs = 20
-batch_size = 32 
+batch_size = 256 
 display_step = 1
 
 n_input_img = 4096 # YLI_MED image data input (data shape: 4096, fc7 layer output)
@@ -62,7 +62,6 @@ with tf.device('/gpu:' + GPUNUM):
     
     # Create model
     def multilayer_perceptron(_X_aud, _X_img, _w_aud, _b_aud, _w_img, _b_img, _w_out, _b_out, _dropout, _b_size):
-        print _X_aud
         #aud
         aud_layer_1 = tf.nn.relu(tf.add(tf.matmul(_X_aud, _w_aud['h1']), _b_aud['b1'])) #Hidden layer with RELU activation
         aud_layer_2 = tf.nn.relu(tf.add(tf.matmul(aud_layer_1, _w_aud['h2']), _b_aud['b2'])) #Hidden layer with RELU activation
@@ -71,15 +70,15 @@ with tf.device('/gpu:' + GPUNUM):
         img_layer_1 = tf.nn.relu(tf.add(tf.matmul(_X_img, _w_img['h1']), _b_img['b1'])) #Hidden layer with RELU activation
         drop_1 = tf.nn.dropout(img_layer_1, _dropout)
         img_layer_2 = tf.nn.relu(tf.add(tf.matmul(drop_1, _w_img['h2']), _b_img['b2'])) #Hidden layer with RELU activation
-        #drop_2 = tf.nn.dropout(img_layer_2, _dropout)
+        drop_2 = tf.nn.dropout(img_layer_2, _dropout)
         #img_out = tf.matmul(drop_2, _w_img['out']) + _b_img['out']
 
         '''
         Merge with CA
         '''
-        factor = calculatCA(aud_layer_2, img_layer_2, 600, _b_size)
+        factor = calculatCA(aud_layer_2, drop_2, 600, _b_size)
         factor = tf.reshape(tf.diag(factor), shape=[_b_size, _b_size])
-        merge_sum = tf.add(aud_layer_2, img_layer_2)
+        merge_sum = tf.add(aud_layer_2, drop_2)
         facmat = tf.nn.relu(tf.matmul(factor, merge_sum))
    
     
@@ -190,8 +189,8 @@ with tf.device('/gpu:' + GPUNUM):
         print "Optimization Finished!"
         
         # Test model
-        batch_size = 32
-        #predtest = multilayer_perceptron(x_aud, x_img, w_aud, b_aud, w_img, b_img, w_out, b_out, keep_prob, 1)
+        batch_size = 1
+        pred = multilayer_perceptron(x_aud, x_img, w_aud, b_aud, w_img, b_img, w_out, b_out, keep_prob, batch_size)
         correct_prediction = tf.equal(tf.argmax(pred, 1), tf.argmax(y, 1))
         test = tf.reduce_sum(tf.cast(correct_prediction, "float"))
         total = 0

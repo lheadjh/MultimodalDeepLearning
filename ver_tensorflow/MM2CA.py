@@ -11,7 +11,7 @@ FILEPATH = sys.argv[2]
 # Network Parameters
 learning_rate = 0.001
 training_epochs = 20
-batch_size = 32
+batch_size = 256
 display_step = 1
 
 n_input_img = 4096 # YLI_MED image data input (data shape: 4096, fc7 layer output)
@@ -66,7 +66,7 @@ with tf.device('/gpu:' + GPUNUM):
         #layer 1
         aud_layer_1 = tf.nn.relu(tf.add(tf.matmul(_X_aud, _w_aud['h1']), _b_aud['b1']))
         img_layer_1 = tf.nn.relu(tf.add(tf.matmul(_X_img, _w_img['h1']), _b_img['b1']))
-        #drop_1 = tf.nn.dropout(img_layer_1, _dropout)
+        img_layer_1 = tf.nn.dropout(img_layer_1, _dropout)
 
         '''
         CA 1
@@ -74,7 +74,9 @@ with tf.device('/gpu:' + GPUNUM):
         factor = calculatCA(aud_layer_1, img_layer_1, 1000, _b_size)
         factor = tf.reshape(tf.diag(factor), shape=[_b_size, _b_size])
         aud_layer_1 = tf.matmul(factor, aud_layer_1)
+        aud_layer_1 = tf.nn.dropout(aud_layer_1, _dropout)
         img_layer_1 = tf.matmul(factor, img_layer_1)
+        #img_layer_1 = tf.nn.dropout(img_layer_1, _dropout)
 
         #layer 2
         aud_layer_2 = tf.nn.relu(tf.add(tf.matmul(aud_layer_1, _w_aud['h2']), _b_aud['b2'])) #Hidden layer with RELU activation
@@ -88,6 +90,7 @@ with tf.device('/gpu:' + GPUNUM):
         factor = tf.reshape(tf.diag(factor), shape=[_b_size, _b_size])
         merge_sum = tf.add(aud_layer_2, img_layer_2)
         facmat = tf.matmul(factor, merge_sum)
+        #facmat = tf.nn.dropout(facmat, _dropout)
     
         #output layer
         out_layer_1 = tf.nn.relu(tf.add(tf.matmul(facmat, _w_out['h1']), _b_out['b1'])) #Hidden layer with RELU activation
@@ -192,9 +195,9 @@ with tf.device('/gpu:' + GPUNUM):
                 print "Epoch:", '%04d' % (epoch+1), "cost=", "{:.9f}".format(avg_cost)
         print "Optimization Finished!"
         
-        
         # Test model
-        batch_size = 32
+        batch_size = 1
+        pred = multilayer_perceptron(x_aud, x_img, w_aud, b_aud, w_img, b_img, w_out, b_out, keep_prob, batch_size)
         correct_prediction = tf.equal(tf.argmax(pred, 1), tf.argmax(y, 1))
         test = tf.reduce_sum(tf.cast(correct_prediction, "float"))
         total = 0
@@ -203,16 +206,8 @@ with tf.device('/gpu:' + GPUNUM):
             total += batch_size
             batch_x_aud, batch_x_img, batch_ys, finish = data.next_batch_multi(X_aud_test, X_img_test, Y_test, batch_size, len(Y_test))
             correct += test.eval({x_aud: batch_x_aud, x_img: batch_x_img, y: batch_ys, keep_prob: 1.})
-            
         print int(len(Y_test)/batch_size)
-        print total
         print correct
-        print corrent / total
+        print total
+        print float(correct/total)
         print 'MM2CA.py'
-'''
-        # Test model
-        correct_prediction = tf.equal(tf.argmax(pred, 1), tf.argmax(y, 1))
-        # Calculate accuracy
-        accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
-        print "Accuracy:", accuracy.eval({x_aud: X_aud_test, x_img: X_img_test, y: Y_test, keep_prob: 1.})
-'''

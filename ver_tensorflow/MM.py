@@ -10,8 +10,8 @@ FILEPATH = sys.argv[2]
 
 # Network Parameters
 learning_rate = 0.001
-training_epochs = 20
-batch_size = 32
+training_epochs = 100
+batch_size = 256
 display_step = 1
 
 n_input_img = 4096 # YLI_MED image data input (data shape: 4096, fc7 layer output)
@@ -27,7 +27,7 @@ n_hidden_1_out = 256
 n_hidden_2_out = 128
 
 n_classes = 10 # YLI_MED total classes (0-9 digits)
-dropout = 1
+dropout = 0.75
 
 with tf.device('/gpu:' + GPUNUM):
     #-------------------------------Struct Graph
@@ -50,7 +50,7 @@ with tf.device('/gpu:' + GPUNUM):
         drop_2 = tf.nn.dropout(img_layer_2, _dropout)
         #img_out = tf.matmul(drop_2, _w_img['out']) + _b_img['out']
 
-        facmat = tf.nn.relu(tf.add(aud_layer_2, drop_2))
+        facmat =tf.add(aud_layer_2, drop_2)
         
         #out_drop = tf.nn.dropout(merge_sum, _dropout)
         out_layer_1 = tf.nn.relu(tf.add(tf.matmul(facmat, _w_out['h1']), _b_out['b1'])) #Hidden layer with RELU activation
