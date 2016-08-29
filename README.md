@@ -1,8 +1,10 @@
 # MultimodalDeepLearning
-Multimodal Deep Learning Using **"YLI-MED: The YLI Multimedia Event Detection Corpus data"** and **"Keras"**
- * http://www.yli-corpus.org/the-yli-med-corpus
- * http://keras.io
+Multimodal Deep Learning Using **"YLI-MED: The YLI Multimedia Event Detection Corpus data"** 
 
+Library: **"Keras"** and **"TensorFlow"**
+ * http://www.multimediacommons.org - YLI Multimedia Event Detection
+ * https://keras.io
+ * https://www.tensorflow.org
 
 #Data set
 Download
